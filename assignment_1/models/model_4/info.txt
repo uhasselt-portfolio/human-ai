@@ -1,0 +1,17 @@
+Model 2 heeft volgende specificaties:
+
+Optimizer = Adam
+
+Loss = Sparse Categorical Crossentropy
+
+Hidden layers = 2
+    - 1e hidden layer = 128 nodes & dropout = 0.4
+    - 2e hidden layer = 128 nodes & dropout = 0.4
+
+
+Epochs = 25
+Batch size = 32
+
+Resultaten:
+    - Loss = 0.08569369465112686
+    - Accuracy = 0.9782999753952026
