@@ -1,4 +1,6 @@
-import * as d3 from 'd3';
+// import * as d3 from 'd3';
+
+const d3 = {} as any;
 
 interface Dot {
   x: number;
@@ -27,45 +29,56 @@ interface Group {
 }
 
 class KMeans {
+  private hashKmeans = d3!.select("#kmeans") as any;
   private flag = false;
-  private WIDTH = d3.select("#kmeans")[0][0].offsetWidth - 20;
+  private WIDTH = this.hashKmeans[0][0].offsetWidth - 20;
   private HEIGHT = Math.max(300, this.WIDTH * 0.7);
   private svg = d3.select("#kmeans svg")
-    .attr('width', this.WIDTH)
-    .attr('height', this.HEIGHT)
-    .style('padding', '10px')
-    .style('background', '#223344')
-    .style('cursor', 'pointer')
-    .style('-webkit-user-select', 'none')
-    .style('-khtml-user-select', 'none')
-    .style('-moz-user-select', 'none')
-    .style('-ms-user-select', 'none')
-    .style('user-select', 'none')
-    .on('click', () => {
-      d3.event.preventDefault();
-      this.step();
-    });
+  .attr('width', this.WIDTH)
+  .attr('height', this.HEIGHT)
+  .style('padding', '10px')
+  .style('background', '#223344')
+  .style('cursor', 'pointer')
+  .style('-webkit-user-select', 'none')
+  .style('-khtml-user-select', 'none')
+  .style('-moz-user-select', 'none')
+  .style('-ms-user-select', 'none')
+  .style('user-select', 'none')
+  .on('click', (event: any) => {
+    event.preventDefault();
+    this.step();
+  });
 
   private groups: Group[] = [];
   private dots: Dot[] = [];
+
   private lineg = this.svg.append('g');
   private dotg = this.svg.append('g');
   private centerg = this.svg.append('g');
 
   constructor() {
     d3.selectAll("#kmeans button")
-      .style('padding', '.5em .8em');
+    .style('padding', '.5em .8em');
 
     d3.selectAll("#kmeans label")
-      .style('display', 'inline-block')
-      .style('width', '15em');
+    .style('display', 'inline-block')
+    .style('width', '15em');
 
     d3.select("#step")
-      .on('click', () => { this.step(); this.draw(); });
+    .on('click', () => {
+      this.step();
+      this.draw();
+    });
     d3.select("#restart")
-      .on('click', () => { this.restart(); this.draw(); });
+    .on('click', () => {
+      this.restart();
+      this.draw();
+    });
     d3.select("#reset")
-      .on('click', () => { this.init(); this.draw(); });
+    .on('click', () => {
+      this.init();
+      this.draw();
+    });
 
     this.init();
     this.draw();
@@ -86,9 +99,13 @@ class KMeans {
   private init() {
     d3.select("#restart").attr("disabled", "disabled");
 
-    const N = parseInt(d3.select('#N')[0][0].value, 10);
-    const K = parseInt(d3.select('#K')[0][0].value, 10);
+    const hashN = d3.select('#N') as any;
+    const hashK = d3.select('#K') as any;
+
+    const N = parseInt(hashN[0][0].value, 10);
+    const K = parseInt(hashK[0][0].value, 10);
     this.groups = [];
+
     for (let i = 0; i < K; i++) {
       const x = Math.random() * this.WIDTH;
       const y = Math.random() * this.HEIGHT;
@@ -151,52 +168,59 @@ class KMeans {
     }
   }
 
-
   private draw() {
-    const circles = this.dotg.selectAll('circle')
-      .data(this.dots);
-    circles.enter()
+    const circles = this.dotg.selectAll('circle').data(this.dots);
+
+    circles
+      .enter()
       .append('circle');
-    circles.exit().remove();
+
+    circles
+      .exit()
+      .remove();
+
     circles
       .transition()
       .duration(500)
-      .attr('cx', (d) => d.x)
-      .attr('cy', (d) => d.y)
-      .attr('fill', (d) => d.group ? d.group.color : '#ffffff')
+      .attr('cx', (d: any) => d.x)
+      .attr('cy', (d: any) => d.y)
+      .attr('fill', (d: any) => d.group ? d.group.color : '#ffffff')
       .attr('r', 5);
 
     if (this.dots[0].group) {
-      const l = this.lineg.selectAll('line')
-        .data(this.dots);
-      const updateLine = (lines) => {
+      const l = this.lineg.selectAll('line').data(this.dots);
+      const updateLine = (lines: any) => {
         lines
-          .attr('x1', (d) => d.x)
-          .attr('y1', (d) => d.y)
-          .attr('x2', (d) => d.group.center.x)
-          .attr('y2', (d) => d.group.center.y)
-          .attr('stroke', (d) => d.group.color);
+          .attr('x1', (d: any) => d.x)
+          .attr('y1', (d: any) => d.y)
+          .attr('x2', (d: any) => d.group.center.x)
+          .attr('y2', (d: any) => d.group.center.y)
+          .attr('stroke', (d: any) => d.group.color);
       };
+
       updateLine(l.enter().append('line'));
       updateLine(l.transition().duration(500));
       l.exit().remove();
+
     } else {
       this.lineg.selectAll('line').remove();
     }
 
-    const c = this.centerg.selectAll('path')
-      .data(this.groups);
-    const updateCenters = (centers) => {
+    const c = this.centerg.selectAll('path').data(this.groups);
+
+    const updateCenters = (centers: any) => {
       centers
-        .attr('transform', (d) => `translate(${d.center.x},${d.center.y}) rotate(45)`)
-        .attr('fill', (d, i) => d.color)
-        .attr('stroke', '#aabbcc');
+      .attr('transform', (d: any) => `translate(${d.center.x},${d.center.y}) rotate(45)`)
+      .attr('fill', (d: any, i: any) => d.color)
+      .attr('stroke', '#aabbcc');
     };
+
     c.exit().remove();
     updateCenters(c.enter()
       .append('path')
-      .attr('d', d3.svg.symbol().type('cross'))
+      .attr('d', (d3.svg as any).symbol().type('cross'))
       .attr('stroke', '#aabbcc'));
+
     updateCenters(c
       .transition()
       .duration(500));
@@ -221,7 +245,9 @@ class KMeans {
   }
 
   private updateGroups() {
-    this.groups.forEach((g) => { g.dots = []; });
+    this.groups.forEach((g) => {
+      g.dots = [];
+    });
     this.dots.forEach((dot) => {
       // find the nearest group
       let min = Infinity;
@@ -235,8 +261,9 @@ class KMeans {
       });
 
       // update group
-      group.dots.push(dot);
+      (group as any).dots.push(dot);
       dot.group = group;
     });
   }
+
 }

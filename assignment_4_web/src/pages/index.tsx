@@ -1,18 +1,13 @@
+import dynamic from "next/dynamic";
 
+
+const ClientComponent = dynamic(() => import("@web/components/ClientIndexPage"), {ssr: false});
 
 const IndexPage = () => {
 
   // Render
-  const renderCanvas = () => {
-    return <div className="">
-
-    </div>
-  }
-
   const render = () => {
-    return <div className="w-full">
-
-    </div>;
+    return <ClientComponent/>
   }
 
   return render();
