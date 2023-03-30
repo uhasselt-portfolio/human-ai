@@ -64,7 +64,7 @@ const ClientIndexPage = () => {
   }
 
   const showClusterLines = () => {
-    setShowLines(true);
+    setShowLines(value => !value);
   }
 
   const updateCentroids = () => {
@@ -172,7 +172,7 @@ const ClientIndexPage = () => {
         <button className={btn} onClick={showClusterLines}>Lines</button>
         <button className={btn} onClick={updateCentroids}>Update Centroids</button>
 
-        <button className={btn} onClick={start}>Start</button>
+        {/*<button className={btn} onClick={start}>Start</button>*/}
       </div>
     </div>;
   }
