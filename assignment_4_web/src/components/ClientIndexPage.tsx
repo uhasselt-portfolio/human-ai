@@ -1,6 +1,5 @@
 import {signal} from "@preact/signals-react";
 import {distance, getMallCustomersPoints, Point, PointsData, random, translate} from "@web/core/getPoints";
-import {sign} from "crypto";
 import toast from "react-hot-toast";
 import {Circle, Group, Layer, Line, Stage, Star, Text} from "react-konva";
 
@@ -357,7 +356,11 @@ const ClientIndexPage = () => {
       const dists = distances.filter(d => d !== dist);
 
       return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
-        <span>The selected datapoint ({index}) belongs to the <span className="font-medium" style={{color: color}}>{colorName}</span> cluster because the distance (<span className="font-medium">{dist}</span>) from the datapoint to the <span className="font-medium" style={{color: color}}>{colorName}</span> clusters centroid is the shorter than the distances (<span className="font-medium">{dists.join(", ")}</span>) to to any other clusters centroids.</span>
+        <span>The selected datapoint ({index}) belongs to the <span className="font-medium"
+                                                                    style={{color: color}}>{colorName}</span> cluster because the distance (<span
+          className="font-medium">{dist}</span>) from the datapoint to the <span className="font-medium"
+                                                                                 style={{color: color}}>{colorName}</span> clusters centroid is the shorter than the distances (<span
+          className="font-medium">{dists.join(", ")}</span>) to to any other clusters centroids.</span>
       </div>
     }
 
@@ -371,7 +374,10 @@ const ClientIndexPage = () => {
       const dists = distances.filter(d => d !== dist);
 
       return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
-        <span>The selected datapoint ({index}) does NOT belong to the any of the remaining clusters. This is because the distances (<span className="font-medium">{dists.join(", ")}</span>) to any of the other clusters is still not smaller than the distance (<span className="font-medium">{dist}</span>) to the <span className="font-medium" style={{color: color}}>{colorName}</span> cluster.</span>
+        <span>The selected datapoint ({index}) does NOT belong to the any of the remaining clusters. This is because the distances (<span
+          className="font-medium">{dists.join(", ")}</span>) to any of the other clusters is still not smaller than the distance (<span
+          className="font-medium">{dist}</span>) to the <span className="font-medium"
+                                                              style={{color: color}}>{colorName}</span> cluster.</span>
       </div>
     }
 
@@ -383,7 +389,9 @@ const ClientIndexPage = () => {
       const ics = initialCentroids.value.map(centroid => `(${centroid.x.toFixed(0)}, ${centroid.y.toFixed(0)})`);
 
       return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
-        <span>We can see that the initial centroids were chosen nicely! The clusters contain (<span className="font-medium">{ppc.join(", ")}</span>) points per cluster. The initial centroids were (<span className="font-medium">{ics.join(", ")}</span>).</span>
+        <span>We can see that the initial centroids were chosen nicely! The clusters contain (<span
+          className="font-medium">{ppc.join(", ")}</span>) points per cluster. The initial centroids were (<span
+          className="font-medium">{ics.join(", ")}</span>).</span>
       </div>
     }
 
