@@ -1,5 +1,6 @@
 import {signal} from "@preact/signals-react";
 import {distance, getMallCustomersPoints, Point, PointsData, random, translate} from "@web/core/getPoints";
+import toast from "react-hot-toast";
 import {Circle, Layer, Line, Stage, Star, Text} from "react-konva";
 
 
@@ -12,7 +13,6 @@ const showLines = signal<boolean>(false);
 
 
 const ClientIndexPage = () => {
-
 
   // Actions
   const loadPoints = async () => {
@@ -101,19 +101,17 @@ const ClientIndexPage = () => {
     showClusterLines();
     await sleep(time);
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       updateCentroids();
       await sleep(time);
       cluster();
       await sleep(time);
     }
 
-    // 2. Randomly pick centroids
-    // 3. Step (select closest point to centroid)
-    // 4. Visualize lines
-    // 5. Update centroid + lines + color
-    // 6. Repeat 3.
+    toast.success("Done!");
   }
+
+
 
 
   // Render
@@ -123,6 +121,7 @@ const ClientIndexPage = () => {
       const color = point.cluster !== undefined ? colors[point.cluster] : "#475569";
 
       return <Circle
+        onClick={() => {}}
         key={index}
         x={x} y={y}
         width={10} height={10}
