@@ -1,5 +1,6 @@
 import {signal} from "@preact/signals-react";
 import {distance, getMallCustomersPoints, Point, PointsData, random, translate} from "@web/core/getPoints";
+import {sign} from "crypto";
 import toast from "react-hot-toast";
 import {Circle, Group, Layer, Line, Stage, Star, Text} from "react-konva";
 
@@ -10,6 +11,7 @@ const colorNames = ["blue", "purple", "red", "green"];
 // State
 const points = signal<PointsData | null>(null);
 const centroids = signal<Point[]>([]);
+const initialCentroids = signal<Point[]>([]);
 const showLines = signal<boolean>(false);
 
 const selectedQuestion = signal(0);
@@ -35,6 +37,7 @@ const ClientIndexPage = () => {
     }
 
     centroids.value = randPoints;
+    initialCentroids.value = randPoints;
   }
 
   const cluster = () => {
@@ -369,6 +372,18 @@ const ClientIndexPage = () => {
 
       return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
         <span>The selected datapoint ({index}) does NOT belong to the any of the remaining clusters. This is because the distances (<span className="font-medium">{dists.join(", ")}</span>) to any of the other clusters is still not smaller than the distance (<span className="font-medium">{dist}</span>) to the <span className="font-medium" style={{color: color}}>{colorName}</span> cluster.</span>
+      </div>
+    }
+
+    if (selectedQuestion.value === 2) {
+      const ppc = centroids.value.map((centroid, index) => {
+        return points.value!.points.filter((v) => v.cluster === index).length;
+      });
+
+      const ics = initialCentroids.value.map(centroid => `(${centroid.x.toFixed(0)}, ${centroid.y.toFixed(0)})`);
+
+      return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
+        <span>We can see that the initial centroids were chosen nicely! The clusters contain (<span className="font-medium">{ppc.join(", ")}</span>) points per cluster. The initial centroids were (<span className="font-medium">{ics.join(", ")}</span>).</span>
       </div>
     }
 
