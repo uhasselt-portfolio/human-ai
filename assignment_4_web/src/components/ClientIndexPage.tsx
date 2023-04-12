@@ -12,6 +12,8 @@ const points = signal<PointsData | null>(null);
 const centroids = signal<Point[]>([]);
 const showLines = signal<boolean>(false);
 
+const selectedQuestion = signal(0);
+
 
 const ClientIndexPage = () => {
 
@@ -170,6 +172,7 @@ const ClientIndexPage = () => {
 
 
   // Render
+  // Canvas
   const renderDistancesBetweenCentroidsAndSelectedPoint = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
     const selectedPoint = points.value?.points.find((point) => point.selected);
 
@@ -211,7 +214,13 @@ const ClientIndexPage = () => {
 
       return <Circle
         onClick={() => {
-          explainPoint(index);
+          if (selectedQuestion.value === 0 || selectedQuestion.value === 1) {
+            explainPoint(index);
+          }
+
+          if (selectedQuestion.value === 2 || selectedQuestion.value === 3) {
+            toast.error("Not implemented");
+          }
         }}
         key={index}
         x={x} y={y}
@@ -335,7 +344,7 @@ const ClientIndexPage = () => {
   const renderInfoPanel = () => {
     const selectedPoint = points.value?.points.find((point) => point.selected);
 
-    if (selectedPoint) {
+    if (selectedPoint && selectedQuestion.value === 0) {
       const index = points.value?.points.findIndex((point) => point.selected);
       const color = colors[selectedPoint.cluster!];
       const colorName = colorNames[selectedPoint.cluster!];
@@ -346,6 +355,20 @@ const ClientIndexPage = () => {
 
       return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
         <span>The selected datapoint ({index}) belongs to the <span className="font-medium" style={{color: color}}>{colorName}</span> cluster because the distance (<span className="font-medium">{dist}</span>) from the datapoint to the <span className="font-medium" style={{color: color}}>{colorName}</span> clusters centroid is the shorter than the distances (<span className="font-medium">{dists.join(", ")}</span>) to to any other clusters centroids.</span>
+      </div>
+    }
+
+    if (selectedPoint && selectedQuestion.value === 1) {
+      const index = points.value?.points.findIndex((point) => point.selected);
+      const color = colors[selectedPoint.cluster!];
+      const colorName = colorNames[selectedPoint.cluster!];
+
+      const distances = centroids.value.map(centroid => distance(selectedPoint, centroid).toFixed(2));
+      const dist = distances[selectedPoint.cluster!];
+      const dists = distances.filter(d => d !== dist);
+
+      return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
+        <span>The selected datapoint ({index}) does NOT belong to the any of the remaining clusters. This is because the distances (<span className="font-medium">{dists.join(", ")}</span>) to any of the other clusters is still not smaller than the distance (<span className="font-medium">{dist}</span>) to the <span className="font-medium" style={{color: color}}>{colorName}</span> cluster.</span>
       </div>
     }
 
@@ -375,6 +398,7 @@ const ClientIndexPage = () => {
     </div>
   }
 
+  // Interface
   const renderInterface = () => {
     const btn = "px-2 py-1 rounded bg-gray-900 text-white font-medium w-max";
     const input = "px-2 py-1 rounded border";
@@ -416,11 +440,29 @@ const ClientIndexPage = () => {
     </div>;
   }
 
-  const renderExplainer = (title: string, description: string, selected?: boolean) => {
+  const renderExplainer = (id: number, title: string, description: string, test?: boolean) => {
+    const selected = id === selectedQuestion.value;
+
     const clsSelected = selected ? "border-blue-600" : "opacity-60";
     const cls = "border rounded py-3 px-4 w-96 flex flex-col gap-1 cursor-pointer" + " " + clsSelected;
 
-    return <div className={cls}>
+    const onClick = () => {
+      selectedQuestion.value = id;
+
+      const updatedPoints1: Point[] = points.value!.points.map((point) => {
+        return {
+          ...point,
+          selected: false,
+        }
+      });
+
+      points.value = {
+        ...points.value!,
+        points: updatedPoints1,
+      }
+    }
+
+    return <div className={cls} onClick={onClick}>
       <span className="font-medium leading-snug">{title}</span>
       <span className="">{description}</span>
     </div>
@@ -429,22 +471,26 @@ const ClientIndexPage = () => {
   const renderExplainers = () => {
     return <div className="flex flex-col gap-1 mt-[69px]">
       {renderExplainer(
+        0,
         "Why is this datapoint (dot) assigned to the resulting cluster?",
         "Select a datapoint to get more information about why the datapoint is assigned to the resulting cluster.",
         true,
       )}
 
       {renderExplainer(
+        1,
         "Why is this datapoint (dot) NOT assigned to the resulting cluster?",
         "Select a datapoint to get more information about why the datapoint is NOT assigned to any of the other clusters.",
       )}
 
       {renderExplainer(
+        2,
         "When does clustering work well? Does it work well in this case?",
         "This will visualize the initial centroids and visualize how the clusters are formed from there, we will see that if the centroids are spread out that the result will be better, we will also see that the clusters contain approx. the same number of datapoints.",
       )}
 
       {renderExplainer(
+        3,
         "How do you correct for bad predictions?",
         "Explain here how we can correct!",
       )}
