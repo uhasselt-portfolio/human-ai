@@ -9,12 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@preact/signals-react": "^1.2.2",
     "@types/node": "18.15.11",
     "@types/papaparse": "^5.3.7",
     "@types/react": "18.0.31",
     "@types/react-dom": "18.0.11",
     "konva": "^8.4.3",
-    "next": "13.2.4",
+    "next": "^13.3.0",
     "papaparse": "^5.4.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
