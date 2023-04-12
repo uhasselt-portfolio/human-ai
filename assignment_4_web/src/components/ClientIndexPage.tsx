@@ -1,10 +1,11 @@
 import {signal} from "@preact/signals-react";
 import {distance, getMallCustomersPoints, Point, PointsData, random, translate} from "@web/core/getPoints";
 import toast from "react-hot-toast";
-import {Circle, Layer, Line, Stage, Star, Text} from "react-konva";
+import {Circle, Group, Layer, Line, Stage, Star, Text} from "react-konva";
 
 
 const colors = ["#0891b2", "#6d28d9", "#be123c", "#65a30d"];
+const colorNames = ["blue", "purple", "red", "green"];
 
 // State
 const points = signal<PointsData | null>(null);
@@ -15,6 +16,7 @@ const showLines = signal<boolean>(false);
 const ClientIndexPage = () => {
 
   // Actions
+  // KMeans
   const loadPoints = async () => {
     points.value = await getMallCustomersPoints("Age", "Annual Income (k$)");
   }
@@ -87,12 +89,14 @@ const ClientIndexPage = () => {
 
   const sleep = async (timeout: number) => {
     return new Promise((resolve, reject) => {
-      setTimeout(() => { resolve(true); }, timeout);
+      setTimeout(() => {
+        resolve(true);
+      }, timeout);
     });
   }
 
   const start = async () => {
-    const time = 350;
+    const time = 0; // 350
 
     pickCentroids();
     await sleep(time);
@@ -111,21 +115,109 @@ const ClientIndexPage = () => {
     toast.success("Done!");
   }
 
+  // Explainer
+  const explainPoint = (index: number) => {
+    // const point = points.value!.points[index];
+    // const centroid = centroids.value[point.cluster!];
+    //
+    // // round centroid to 2 decimal places
+    // centroid.x = Math.round(centroid.x * 100) / 100;
+    // centroid.y = Math.round(centroid.y * 100) / 100;
+    //
+    // toast.success(`Point ${index} is in cluster ${point.cluster} and is closest to centroid ${point.cluster} which is at (${centroid.x}, ${centroid.y})`, {duration: 10000});
 
+    // Step 1. Toggle lines
+    showLines.value = false;
+
+    // Step 2. Highlight selected point (index)
+    // Unselect all points
+    const updatedPoints1: Point[] = points.value!.points.map((point) => {
+      return {
+        ...point,
+        selected: false,
+      }
+    });
+
+    points.value = {
+      ...points.value!,
+      points: updatedPoints1,
+    }
+
+    // Select point
+    const updatedPoints2 = points.value!.points.map((point, i) => {
+      if (i === index) {
+        return {
+          ...point,
+          selected: true,
+        }
+      }
+
+      return point;
+    });
+
+    points.value = {
+      ...points.value!,
+      points: updatedPoints2,
+    }
+
+    // Step 3. Show distance between selected point and all other centroids
+
+    // Step 4. Highlight closest centroid
+
+    // Step 5. Show distance between selected point and closest centroid
+
+  }
 
 
   // Render
+  const renderDistancesBetweenCentroidsAndSelectedPoint = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
+    const selectedPoint = points.value?.points.find((point) => point.selected);
+
+    if (!selectedPoint) {
+      return null;
+    }
+
+    return centroids.value.map((centroid, index) => {
+      const {x, y} = translate(w, h, centroid, ...bounds, p);
+
+      // translate selected point
+      const {x: x2, y: y2} = translate(w, h, selectedPoint, ...bounds, p);
+
+      // Draw lines between the centroids and the length of the line is the distance between the centroid and the selected point
+      // text background color white
+      return <Group key={index}>
+        <Line points={[x, y, x2, y2]} stroke={"black"} strokeWidth={1} opacity={0.5}/>
+
+        <Text
+          key={index + 100}
+          x={x - 30} y={y + 10}
+          text={distance(selectedPoint, centroid).toFixed(2)}
+          fill={"green"}
+          stroke={"black"}
+          fontSize={20}
+          padding={5}
+          // background color white
+        />
+      </Group>
+    });
+  }
+
   const renderDataPoints = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
+    const selectedPoint = points.value?.points.find((point) => point.selected);
+
     return points.value && points.value.points.map((point: Point, index: number) => {
       const {x, y} = translate(w, h, point, ...bounds, p);
       const color = point.cluster !== undefined ? colors[point.cluster] : "#475569";
 
       return <Circle
-        onClick={() => {}}
+        onClick={() => {
+          explainPoint(index);
+        }}
         key={index}
         x={x} y={y}
         width={10} height={10}
         fill={color}
+        opacity={selectedPoint && selectedPoint.cluster !== point.cluster ? 0.5 : 1}
       />
     });
   }
@@ -177,26 +269,24 @@ const ClientIndexPage = () => {
         stroke={"black"}
       />
 
-      {xTickValues.map((value) => {
+      {xTickValues.map((value, index) => {
         const x = ((value - minX) / (maxX - minX)) * (w - p) + p / 2;
 
-        return (
-          <>
-            <Line
-              points={[x, h - p / 2, x, h - p / 2 + xTickLength]}
-              strokeWidth={1}
-              stroke={"black"}
-            />
-            <Text
-              x={x - 7}
-              y={h - p / 2 + xTickLength + 5}
-              text={value.toString()}
-              align="center"
-              verticalAlign="top"
-              fontSize={14}
-            />
-          </>
-        );
+        return <Group key={index}>
+          <Line
+            points={[x, h - p / 2, x, h - p / 2 + xTickLength]}
+            strokeWidth={1}
+            stroke={"black"}
+          />
+          <Text
+            x={x - 7}
+            y={h - p / 2 + xTickLength + 5}
+            text={value.toString()}
+            align="center"
+            verticalAlign="top"
+            fontSize={14}
+          />
+        </Group>
       })}
 
       <Text
@@ -213,26 +303,24 @@ const ClientIndexPage = () => {
         stroke={"black"}
       />
 
-      {yTickValues.map((value) => {
+      {yTickValues.map((value, index) => {
         const y = ((value - minY) / (maxY - minY)) * (h - p) + p / 2;
 
-        return (
-          <>
-            <Line
-              points={[p / 2, h - y, p / 2 - yTickLength, h - y]}
-              strokeWidth={1}
-              stroke={"black"}
-            />
-            <Text
-              x={p / 2 - yTickLength - 5 - 25}
-              y={h - y - 5}
-              text={value.toString()}
-              align="left"
-              verticalAlign="left"
-              fontSize={14}
-            />
-          </>
-        );
+        return <Group key={index}>
+          <Line
+            points={[p / 2, h - y, p / 2 - yTickLength, h - y]}
+            strokeWidth={1}
+            stroke={"black"}
+          />
+          <Text
+            x={p / 2 - yTickLength - 5 - 25}
+            y={h - y - 5}
+            text={value.toString()}
+            align="left"
+            verticalAlign="left"
+            fontSize={14}
+          />
+        </Group>
       })}
 
       <Text
@@ -244,6 +332,26 @@ const ClientIndexPage = () => {
     </>
   }
 
+  const renderInfoPanel = () => {
+    const selectedPoint = points.value?.points.find((point) => point.selected);
+
+    if (selectedPoint) {
+      const index = points.value?.points.findIndex((point) => point.selected);
+      const color = colors[selectedPoint.cluster!];
+      const colorName = colorNames[selectedPoint.cluster!];
+
+      const distances = centroids.value.map(centroid => distance(selectedPoint, centroid).toFixed(2));
+      const dist = distances[selectedPoint.cluster!];
+      const dists = distances.filter(d => d !== dist);
+
+      return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
+        <span>The selected datapoint ({index}) belongs to the <span className="font-medium" style={{color: color}}>{colorName}</span> cluster because the distance (<span className="font-medium">{dist}</span>) from the datapoint to the <span className="font-medium" style={{color: color}}>{colorName}</span> clusters centroid is the shorter than the distances (<span className="font-medium">{dists.join(", ")}</span>) to to any other clusters centroids.</span>
+      </div>
+    }
+
+    return null;
+  }
+
   const renderCanvas = () => {
     const w = 1200;
     const h = w * 9 / 16;
@@ -251,33 +359,41 @@ const ClientIndexPage = () => {
 
     const bounds: [number, number, number, number] = points.value ? [points.value.minCol1, points.value.maxCol1, points.value.minCol2, points.value.maxCol2] : [0, 0, 0, 0];
 
-    return <Stage width={w} height={h} className="bg-white border-2">
-      <Layer>
-        {renderDataPoints(w, h, bounds, p)}
-        {renderCentroids(w, h, bounds, p)}
-        {renderLines(w, h, bounds, p)}
+    return <div className="relative">
+      {renderInfoPanel()}
+      <Stage width={w} height={h} className="bg-white border rounded">
 
-        {points.value && renderAxis(w, h, bounds, p)}
-      </Layer>
-    </Stage>
+        <Layer>
+          {renderDataPoints(w, h, bounds, p)}
+          {renderCentroids(w, h, bounds, p)}
+          {renderLines(w, h, bounds, p)}
+          {renderDistancesBetweenCentroidsAndSelectedPoint(w, h, bounds, p)}
+
+          {points.value && renderAxis(w, h, bounds, p)}
+        </Layer>
+      </Stage>
+    </div>
   }
 
-  const render = () => {
+  const renderInterface = () => {
     const btn = "px-2 py-1 rounded bg-gray-900 text-white font-medium w-max";
     const input = "px-2 py-1 rounded border";
 
-    return <div className="flex flex-col gap-1 w-max mx-auto pt-8">
+    return <div className="flex flex-col gap-1 w-max pt-8">
       <div className="flex flex-row justify-between">
         <div className="flex flex-row gap-1">
-          <select className={input} value="mall_customers">
+          <select className={input} value="mall_customers" onChange={() => {
+          }}>
             <option value="mall_customers">Mall Customers</option>
           </select>
 
-          <select className={input} value="age">
+          <select className={input} value="age" onChange={() => {
+          }}>
             <option value="age">Age</option>
           </select>
 
-          <select className={input} value="annual_income">
+          <select className={input} value="annual_income" onChange={() => {
+          }}>
             <option value="annual_income">Annual Income (k$)</option>
           </select>
 
@@ -298,6 +414,49 @@ const ClientIndexPage = () => {
       {renderCanvas()}
 
     </div>;
+  }
+
+  const renderExplainer = (title: string, description: string, selected?: boolean) => {
+    const clsSelected = selected ? "border-blue-600" : "opacity-60";
+    const cls = "border rounded py-3 px-4 w-96 flex flex-col gap-1 cursor-pointer" + " " + clsSelected;
+
+    return <div className={cls}>
+      <span className="font-medium leading-snug">{title}</span>
+      <span className="">{description}</span>
+    </div>
+  }
+
+  const renderExplainers = () => {
+    return <div className="flex flex-col gap-1 mt-[69px]">
+      {renderExplainer(
+        "Why is this datapoint (dot) assigned to the resulting cluster?",
+        "Select a datapoint to get more information about why the datapoint is assigned to the resulting cluster.",
+        true,
+      )}
+
+      {renderExplainer(
+        "Why is this datapoint (dot) NOT assigned to the resulting cluster?",
+        "Select a datapoint to get more information about why the datapoint is NOT assigned to any of the other clusters.",
+      )}
+
+      {renderExplainer(
+        "When does clustering work well? Does it work well in this case?",
+        "This will visualize the initial centroids and visualize how the clusters are formed from there, we will see that if the centroids are spread out that the result will be better, we will also see that the clusters contain approx. the same number of datapoints.",
+      )}
+
+      {renderExplainer(
+        "How do you correct for bad predictions?",
+        "Explain here how we can correct!",
+      )}
+    </div>
+  }
+
+  const render = () => {
+
+    return <div className="flex flex-row gap-2 mx-auto w-max">
+      {renderInterface()}
+      {renderExplainers()}
+    </div>
   }
 
   return render();

@@ -15,6 +15,7 @@ export type Point = {
   x: number;
   y: number;
   cluster?: number;
+  selected?: boolean;
 };
 
 
