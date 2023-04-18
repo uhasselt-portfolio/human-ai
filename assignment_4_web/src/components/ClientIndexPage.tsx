@@ -13,19 +13,24 @@ const centroids = signal<Point[]>([]);
 const initialCentroids = signal<Point[]>([]);
 const showLines = signal<boolean>(false);
 
-const selectedQuestion = signal(0);
+// Selection
+const selectedQuestion = signal<number | undefined>(undefined);
+const selectedDatapoint = signal<number | undefined>(undefined);
+const selectedCluster = signal<number | undefined>(undefined);
+
+// Constants
+const numClusters = 4;
 
 
 const ClientIndexPage = () => {
 
-  // Actions
   // KMeans
   const loadPoints = async () => {
     points.value = await getMallCustomersPoints("Age", "Annual Income (k$)");
   }
 
   const pickCentroids = () => {
-    const n = 4;
+    const n = numClusters;
 
     const {minCol1, maxCol1, minCol2, maxCol2} = points.value!;
     const randPoints: Point[] = [];
@@ -67,7 +72,7 @@ const ClientIndexPage = () => {
   }
 
   const showClusterLines = () => {
-    showLines.value = !showLines.value;
+    showLines.value = true;
   }
 
   const updateCentroids = () => {
@@ -119,74 +124,74 @@ const ClientIndexPage = () => {
     toast.success("Done!");
   }
 
-  // Explainer
-  const explainPoint = (index: number) => {
-    // const point = points.value!.points[index];
-    // const centroid = centroids.value[point.cluster!];
-    //
-    // // round centroid to 2 decimal places
-    // centroid.x = Math.round(centroid.x * 100) / 100;
-    // centroid.y = Math.round(centroid.y * 100) / 100;
-    //
-    // toast.success(`Point ${index} is in cluster ${point.cluster} and is closest to centroid ${point.cluster} which is at (${centroid.x}, ${centroid.y})`, {duration: 10000});
+  // Selection
+  const selectDatapoint = (index: number | undefined) => {
+    selectedDatapoint.value = index;
+    index && toast.success("Selected Datapoint");
+  }
 
-    // Step 1. Toggle lines
-    showLines.value = false;
+  const selectCentroid = (index: number | undefined) => {
+    selectedCluster.value = index;
+    index && toast.success("Selected Centroid");
+  }
 
-    // Step 2. Highlight selected point (index)
-    // Unselect all points
-    const updatedPoints1: Point[] = points.value!.points.map((point) => {
-      return {
-        ...point,
-        selected: false,
+  const getSelectedDatapoint = () => {
+    return points.value?.points![selectedDatapoint.value!]!;
+  }
+
+  const getSelectedCentroid = () => {
+    return centroids.value![selectedCluster.value!];
+  }
+
+  // Actions
+  const include = () => {
+    const iCentroid = selectedCluster.value;
+    const iDatapoint = selectedDatapoint.value;
+
+    const point = points.value!.points[iDatapoint!]!;
+    const cluster2 = point.cluster!;
+
+    // while (iCentroid !== cluster2) {
+    for (let i = 0; i < 100; i++) {
+
+      if (iCentroid === cluster2) {
+        break;
       }
-    });
 
-    points.value = {
-      ...points.value!,
-      points: updatedPoints1,
-    }
+      centroids.value = centroids.value.map((centroid, index) => {
 
-    // Select point
-    const updatedPoints2 = points.value!.points.map((point, i) => {
-      if (i === index) {
-        return {
-          ...point,
-          selected: true,
+        if (index === iCentroid) {
+          const dx = centroid.x - ((centroid.x - point.x) / 100);
+          const dy = centroid.y - ((centroid.y - point.y) / 100);
+          return {x: dx, y: dy};
         }
-      }
 
-      return point;
-    });
+        return centroid;
+      });
 
-    points.value = {
-      ...points.value!,
-      points: updatedPoints2,
+      cluster();
     }
-
-    // Step 3. Show distance between selected point and all other centroids
-
-    // Step 4. Highlight closest centroid
-
-    // Step 5. Show distance between selected point and closest centroid
-
   }
 
 
   // Render
   // Canvas
-  const renderDistancesBetweenCentroidsAndSelectedPoint = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
-    const selectedPoint = points.value?.points.find((point) => point.selected);
-
-    if (!selectedPoint) {
+  const renderAllDistances = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
+    if (selectedDatapoint.value === undefined) {
       return null;
     }
+
+    if (!(selectedQuestion.value === 0 || selectedQuestion.value === 1)) {
+      return null;
+    }
+
+    const point = getSelectedDatapoint();
 
     return centroids.value.map((centroid, index) => {
       const {x, y} = translate(w, h, centroid, ...bounds, p);
 
       // translate selected point
-      const {x: x2, y: y2} = translate(w, h, selectedPoint, ...bounds, p);
+      const {x: x2, y: y2} = translate(w, h, point, ...bounds, p);
 
       // Draw lines between the centroids and the length of the line is the distance between the centroid and the selected point
       // text background color white
@@ -196,7 +201,7 @@ const ClientIndexPage = () => {
         <Text
           key={index + 100}
           x={x - 30} y={y + 10}
-          text={distance(selectedPoint, centroid).toFixed(2)}
+          text={distance(point, centroid).toFixed(2)}
           fill={"green"}
           stroke={"black"}
           fontSize={20}
@@ -207,34 +212,61 @@ const ClientIndexPage = () => {
     });
   }
 
-  const renderDataPoints = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
-    const selectedPoint = points.value?.points.find((point) => point.selected);
+  const renderDatapoints = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
 
     return points.value && points.value.points.map((point: Point, index: number) => {
       const {x, y} = translate(w, h, point, ...bounds, p);
-      const color = point.cluster !== undefined ? colors[point.cluster] : "#475569";
+
+      const color1 = point.cluster !== undefined ? colors[point.cluster] : "#475569";
+      const color = selectedDatapoint.value === index ? "black" : color1;
+
+      const whenDoesClusteringWorkWellSelected = selectedQuestion.value === 2 || selectedQuestion.value === 3;
+      const opacity1 = selectedDatapoint.value !== undefined && getSelectedDatapoint().cluster !== point.cluster ? 0.5 : 1;
+      const opacity = whenDoesClusteringWorkWellSelected ? 0.2 : opacity1;
+
+      const onClick = () => {
+        selectDatapoint(index);
+      }
 
       return <Circle
-        onClick={() => {
-          if (selectedQuestion.value === 0 || selectedQuestion.value === 1) {
-            explainPoint(index);
-          }
-
-          if (selectedQuestion.value === 2 || selectedQuestion.value === 3) {
-            toast.error("Not implemented");
-          }
-        }}
+        onClick={onClick}
         key={index}
         x={x} y={y}
         width={10} height={10}
         fill={color}
-        opacity={selectedPoint && selectedPoint.cluster !== point.cluster ? 0.5 : 1}
+        opacity={opacity}
       />
     });
   }
 
   const renderCentroids = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
     return points.value && centroids.value.map((point: Point, index: number) => {
+      const {x, y} = translate(w, h, point, ...bounds, p);
+
+      const color = selectedCluster.value === index ? "black" : colors[index];
+
+      const whenDoesClusteringWorkWellSelected = selectedQuestion.value === 2 || selectedQuestion.value === 3;
+      const opacity = whenDoesClusteringWorkWellSelected ? 0.2 : 1;
+
+      const onClick = () => {
+        selectCentroid(index);
+      }
+
+      return <Star
+        onClick={onClick}
+        key={index + 200}
+        x={x} y={y}
+        width={10} height={10}
+        innerRadius={10} outerRadius={5}
+        numPoints={4}
+        fill={color}
+        opacity={opacity}
+      />
+    })
+  }
+
+  const renderInitialCentroids = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
+    return points.value && initialCentroids.value.map((point: Point, index: number) => {
       const {x, y} = translate(w, h, point, ...bounds, p);
       return <Star
         key={index + 200}
@@ -246,6 +278,34 @@ const ClientIndexPage = () => {
     })
   }
 
+  const renderInitialCentroidsOnAxis = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
+    return points.value && initialCentroids.value.map((point: Point, index: number) => {
+      const {x, y} = translate(w, h, point, ...bounds, p);
+      const size = 4;
+
+      return <Group>
+        <Circle
+          key={index + 200}
+          x={p / 2}
+          y={y}
+          width={size}
+          height={size}
+          radius={size}
+          fill={colors[index]}
+        />
+        <Circle
+          key={index + 200}
+          x={x}
+          y={h - p / 2}
+          width={size}
+          height={size}
+          radius={size}
+          fill={colors[index]}
+        />
+      </Group>
+    })
+  }
+
   const renderLines = (w: number, h: number, bounds: [number, number, number, number], p: number) => {
     return showLines.value && points.value!.points.map((point: Point, index: number) => {
       const point2 = centroids.value[point.cluster!];
@@ -253,11 +313,19 @@ const ClientIndexPage = () => {
       const {x, y} = translate(w, h, point, ...bounds, p);
       const {x: x2, y: y2} = translate(w, h, point2, ...bounds, p);
 
+      const whenDoesClusteringWorkWellSelected =
+        (selectedDatapoint.value !== undefined && selectedQuestion.value === 0) ||
+        selectedQuestion.value === 2 ||
+        selectedQuestion.value === 3;
+
+      const opacity = whenDoesClusteringWorkWellSelected ? 0.2 : 1;
+
       return <Line
         key={index + 210}
         points={[x, y, x2, y2]}
         strokeWidth={1}
         stroke={colors[point.cluster!]}
+        opacity={opacity}
       />
     })
   }
@@ -343,37 +411,77 @@ const ClientIndexPage = () => {
     </>
   }
 
+  const renderCanvas = () => {
+    const w = 1200;
+    const h = w * 9 / 16;
+    const p = 120;
+
+    const bounds: [number, number, number, number] = points.value ? [points.value.minCol1, points.value.maxCol1, points.value.minCol2, points.value.maxCol2] : [0, 0, 0, 0];
+    const whenDoesClusteringWorkWellSelected = selectedQuestion.value === 2 || selectedQuestion.value === 3;
+
+    return <div className="relative">
+      {renderInfoPanel()}
+      <Stage width={w} height={h} className="bg-white border rounded">
+
+        <Layer>
+          {renderLines(w, h, bounds, p)}
+          {renderCentroids(w, h, bounds, p)}
+          {renderDatapoints(w, h, bounds, p)}
+
+          {renderAllDistances(w, h, bounds, p)}
+          {whenDoesClusteringWorkWellSelected && renderInitialCentroids(w, h, bounds, p)}
+          {points.value && renderAxis(w, h, bounds, p)}
+
+          {whenDoesClusteringWorkWellSelected && renderInitialCentroidsOnAxis(w, h, bounds, p)}
+        </Layer>
+      </Stage>
+    </div>
+  }
+
+  // Explanation
   const renderInfoPanel = () => {
-    const selectedPoint = points.value?.points.find((point) => point.selected);
+    const clsContainer = "border rounded p-2 absolute top-1 right-1 z-50 w-96 bg-white flex flex-col gap-1";
 
-    if (selectedPoint && selectedQuestion.value === 0) {
-      const index = points.value?.points.findIndex((point) => point.selected);
-      const color = colors[selectedPoint.cluster!];
-      const colorName = colorNames[selectedPoint.cluster!];
+    // Why is this datapoint (dot) assigned to the resulting cluster?
+    if (selectedDatapoint.value !== undefined && selectedQuestion.value === 0) {
+      const point = getSelectedDatapoint();
 
-      const distances = centroids.value.map(centroid => distance(selectedPoint, centroid).toFixed(2));
-      const dist = distances[selectedPoint.cluster!];
+      const index = selectedDatapoint.value;
+      const color = colors[point.cluster!];
+      const colorName = colorNames[point.cluster!];
+
+      const distances = centroids.value.map(centroid => distance(point, centroid).toFixed(2));
+      const dist = distances[point.cluster!];
       const dists = distances.filter(d => d !== dist);
 
-      return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
-        <span>The selected datapoint ({index}) belongs to the <span className="font-medium"
-                                                                    style={{color: color}}>{colorName}</span> cluster because the distance (<span
-          className="font-medium">{dist}</span>) from the datapoint to the <span className="font-medium"
-                                                                                 style={{color: color}}>{colorName}</span> clusters centroid is the shorter than the distances (<span
-          className="font-medium">{dists.join(", ")}</span>) to to any other clusters centroids.</span>
+      return <div className={clsContainer}>
+        <span>The selected datapoint ({index}) belongs to the <span className="font-medium" style={{color: color}}>{colorName} </span>
+          cluster because the distance (<span className="font-medium">{dist}</span>) from the datapoint to the
+          <span className="font-medium" style={{color: color}}> {colorName}</span> clusters centroid is the shorter than the distances
+          (<span className="font-medium">{dists.join(", ")}</span>) to to any other clusters centroids.</span>
       </div>
     }
 
-    if (selectedPoint && selectedQuestion.value === 1) {
-      const index = points.value?.points.findIndex((point) => point.selected);
-      const color = colors[selectedPoint.cluster!];
-      const colorName = colorNames[selectedPoint.cluster!];
+    if (selectedDatapoint.value === undefined && selectedQuestion.value === 0) {
+      return <div className={clsContainer}>
+        <span>Select a <b>datapoint</b>.</span>
+      </div>
+    }
 
-      const distances = centroids.value.map(centroid => distance(selectedPoint, centroid).toFixed(2));
-      const dist = distances[selectedPoint.cluster!];
+    // Why is this datapoint (dot) NOT assigned to the resulting cluster?
+    if ((selectedDatapoint.value !== undefined && selectedCluster.value !== undefined) && selectedQuestion.value === 1) {
+      const point = getSelectedDatapoint();
+      const centroid = getSelectedCentroid();
+
+      const index = selectedDatapoint.value;
+      const color = colors[point!.cluster!];
+      const colorName = colorNames[point!.cluster!];
+
+      const distances = centroids.value.map(centroid => distance(point!, centroid).toFixed(2));
+      const dist = distances[point!.cluster!];
       const dists = distances.filter(d => d !== dist);
 
-      return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
+      return <div className={clsContainer}>
         <span>The selected datapoint ({index}) does NOT belong to the any of the remaining clusters. This is because the distances (<span
           className="font-medium">{dists.join(", ")}</span>) to any of the other clusters is still not smaller than the distance (<span
           className="font-medium">{dist}</span>) to the <span className="font-medium"
@@ -381,48 +489,142 @@ const ClientIndexPage = () => {
       </div>
     }
 
+    if (!(selectedDatapoint.value !== undefined && selectedCluster.value !== undefined) && selectedQuestion.value === 1) {
+      return <div className={clsContainer}>
+        <span>Select a <b>datapoint</b> and <b>centroid</b>.</span>
+      </div>
+    }
+
+    // When does clustering work well?
     if (selectedQuestion.value === 2) {
       const ppc = centroids.value.map((centroid, index) => {
         return points.value!.points.filter((v) => v.cluster === index).length;
       });
 
-      const ics = initialCentroids.value.map(centroid => `(${centroid.x.toFixed(0)}, ${centroid.y.toFixed(0)})`);
+      return <div className={clsContainer}>
+        <span>Clustering works well if the initial centroids are spread evenly. Not close ot each other, but close to a lot of points. The centroids are visualized. We can also verify that the number of initial centroids equals the number of final clusters.</span>
+      </div>
+    }
 
-      return <div className="border p-2 rounded absolute top-1 right-1 z-50 w-96">
-        <span>We can see that the initial centroids were chosen nicely! The clusters contain (<span
-          className="font-medium">{ppc.join(", ")}</span>) points per cluster. The initial centroids were (<span
-          className="font-medium">{ics.join(", ")}</span>).</span>
+    // Does it work well in this case?
+    if (selectedQuestion.value === 3) {
+      const ppc = centroids.value.map((centroid, index) => {
+        return points.value!.points.filter((v) => v.cluster === index).length;
+      });
+
+      const found: any[] = [];
+      points.value?.points!.forEach((point) => {
+        if (!found.includes(point.cluster)) {
+          found.push(point.cluster);
+        }
+      });
+
+      return <div className={clsContainer}>
+        <span> The number of datapoints per cluster are as follows, {ppc.slice(0, ppc.length - 1).map((value, index) => {
+          const color = colors[index];
+          const colorName = colorNames[index];
+
+          return <span><span className="font-medium" style={{color}}>{value}</span> for the <span
+            className="font-medium" style={{color}}>{colorName}</span> cluster, </span>
+        })}{ppc.slice(ppc.length - 1).map((value, index) => {
+          const color = colors[index + ppc.length - 1];
+          const colorName = colorNames[index + ppc.length - 1];
+
+          return <span> and <span className="font-medium" style={{color}}>{value}</span> for the <span
+            className="font-medium" style={{color}}>{colorName}</span> cluster.</span>
+        })}</span>
+        <span>We started with <span className="font-medium">{numClusters}</span> centroids and we finished with <span
+          className="font-medium">{found.length}</span> final clusters. This shows us that {numClusters === found.length ? "no clusters where lost." : `we ended up with only ${found.length} clusters.`}</span>
+      </div>
+    }
+
+    // How do you correct for bad predictions?
+    if ((selectedDatapoint.value !== undefined && selectedCluster.value !== undefined) && selectedQuestion.value === 4) {
+      return <div className={clsContainer}>
+        <button className="px-2 py-1 rounded bg-black w-max h-max text-white" onClick={include}>Include</button>
+        <span>This will include the selected datapoint into the selected cluster, as a side affect, other datapoints may also end up in a different cluster.</span>
+      </div>
+    }
+
+    if (!(selectedDatapoint.value !== undefined && selectedCluster.value !== undefined) && selectedQuestion.value === 4) {
+      return <div className={clsContainer}>
+        <span>Select a <b>datapoint</b> and <b>centroid</b>.</span>
       </div>
     }
 
     return null;
   }
 
-  const renderCanvas = () => {
-    const w = 1200;
-    const h = w * 9 / 16;
-    const p = 120;
+  const renderExplainer = (id: number, title: string, description: string, test?: boolean) => {
+    const selected = id === selectedQuestion.value;
 
-    const bounds: [number, number, number, number] = points.value ? [points.value.minCol1, points.value.maxCol1, points.value.minCol2, points.value.maxCol2] : [0, 0, 0, 0];
+    const clsSelected = selected ? "border-blue-600" : "opacity-60";
+    const cls = "border rounded py-3 px-4 w-96 flex flex-col gap-1 cursor-pointer" + " " + clsSelected;
 
-    return <div className="relative">
-      {renderInfoPanel()}
-      <Stage width={w} height={h} className="bg-white border rounded">
+    const clean = () => {
+      selectDatapoint(undefined);
+      selectCentroid(undefined);
+    }
 
-        <Layer>
-          {renderDataPoints(w, h, bounds, p)}
-          {renderCentroids(w, h, bounds, p)}
-          {renderLines(w, h, bounds, p)}
-          {renderDistancesBetweenCentroidsAndSelectedPoint(w, h, bounds, p)}
+    const onClick = () => {
+      if (selectedQuestion.value === id) {
+        selectedQuestion.value = undefined;
+        clean();
+        return;
+      }
 
-          {points.value && renderAxis(w, h, bounds, p)}
-        </Layer>
-      </Stage>
+      selectedQuestion.value = id;
+
+      if (id >= 2) {
+        showLines.value = true;
+      }
+
+      clean();
+    }
+
+    return <div className={cls} onClick={onClick}>
+      <span className="font-medium leading-snug">{title}</span>
+      <span className="">{description}</span>
+    </div>
+  }
+
+  const renderExplainers = () => {
+    return <div className="flex flex-col gap-1 mt-[69px]">
+      {renderExplainer(
+        0,
+        "Why is this datapoint (dot) assigned to the resulting cluster?",
+        "Select a datapoint to get more information about why the datapoint is assigned to the resulting cluster.",
+        true,
+      )}
+
+      {renderExplainer(
+        1,
+        "Why is this datapoint (dot) NOT assigned to the resulting cluster?",
+        "Select a datapoint to get more information about why the datapoint is NOT assigned to any of the other clusters.",
+      )}
+
+      {renderExplainer(
+        2,
+        "When does clustering work well?",
+        "This will visual the initial centroids. And show you the end result to show you that if the initial centroids are chosen well, the clustering likely works well.",
+      )}
+
+      {renderExplainer(
+        3,
+        "Does it work well in this case?",
+        "It works in this case if there are 4 centroids, and the centroids evenly distributed or highly coupled",
+      )}
+
+      {renderExplainer(
+        4,
+        "How do you correct for bad predictions?",
+        "Select a cluster an a datapoint you want to correct, this will then move the centroid of the cluster towards the datapoint until the datapoint is part of the cluster. Keep in mind that this may also result in other datapoint, added to the cluster.",
+      )}
     </div>
   }
 
   // Interface
-  const renderInterface = () => {
+  const renderInputAndStart = () => {
     const btn = "px-2 py-1 rounded bg-gray-900 text-white font-medium w-max";
     const input = "px-2 py-1 rounded border";
 
@@ -463,67 +665,10 @@ const ClientIndexPage = () => {
     </div>;
   }
 
-  const renderExplainer = (id: number, title: string, description: string, test?: boolean) => {
-    const selected = id === selectedQuestion.value;
-
-    const clsSelected = selected ? "border-blue-600" : "opacity-60";
-    const cls = "border rounded py-3 px-4 w-96 flex flex-col gap-1 cursor-pointer" + " " + clsSelected;
-
-    const onClick = () => {
-      selectedQuestion.value = id;
-
-      const updatedPoints1: Point[] = points.value!.points.map((point) => {
-        return {
-          ...point,
-          selected: false,
-        }
-      });
-
-      points.value = {
-        ...points.value!,
-        points: updatedPoints1,
-      }
-    }
-
-    return <div className={cls} onClick={onClick}>
-      <span className="font-medium leading-snug">{title}</span>
-      <span className="">{description}</span>
-    </div>
-  }
-
-  const renderExplainers = () => {
-    return <div className="flex flex-col gap-1 mt-[69px]">
-      {renderExplainer(
-        0,
-        "Why is this datapoint (dot) assigned to the resulting cluster?",
-        "Select a datapoint to get more information about why the datapoint is assigned to the resulting cluster.",
-        true,
-      )}
-
-      {renderExplainer(
-        1,
-        "Why is this datapoint (dot) NOT assigned to the resulting cluster?",
-        "Select a datapoint to get more information about why the datapoint is NOT assigned to any of the other clusters.",
-      )}
-
-      {renderExplainer(
-        2,
-        "When does clustering work well? Does it work well in this case?",
-        "This will visualize the initial centroids and visualize how the clusters are formed from there, we will see that if the centroids are spread out that the result will be better, we will also see that the clusters contain approx. the same number of datapoints.",
-      )}
-
-      {renderExplainer(
-        3,
-        "How do you correct for bad predictions?",
-        "Explain here how we can correct!",
-      )}
-    </div>
-  }
-
   const render = () => {
 
     return <div className="flex flex-row gap-2 mx-auto w-max">
-      {renderInterface()}
+      {renderInputAndStart()}
       {renderExplainers()}
     </div>
   }
