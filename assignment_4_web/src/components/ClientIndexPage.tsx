@@ -20,13 +20,31 @@ const selectedCluster = signal<number | undefined>(undefined);
 
 // Constants
 const numClusters = 4;
+const width = 1200;
+const padding = 120;
+
+const distorted = signal(true);
+const height = signal<number>(width * 9/16);
+const heightSecond = signal<number>(width * 9/16);
 
 
 const ClientIndexPage = () => {
 
   // KMeans
+  const getHeight = () => {
+    return distorted.value ? height.value : heightSecond.value;
+  }
+
+  const toggleDistortion = () => {
+    distorted.value = !distorted.value;
+  }
+
   const loadPoints = async () => {
     points.value = await getMallCustomersPoints("Age", "Annual Income (k$)");
+
+    const w = points.value!.minCol1 - points.value!.maxCol1;
+    const h = points.value!.minCol2 - points.value!.maxCol2;
+    heightSecond.value = width * h/w;
   }
 
   const pickCentroids = () => {
@@ -58,6 +76,8 @@ const ClientIndexPage = () => {
           index = i;
         }
       });
+
+      point.clusterCount[index]++;
 
       return {
         ...point,
@@ -92,6 +112,7 @@ const ClientIndexPage = () => {
       return {
         x: x / count,
         y: y / count,
+        clusterCount: centroid.clusterCount,
       };
     });
   }
@@ -163,7 +184,7 @@ const ClientIndexPage = () => {
         if (index === iCentroid) {
           const dx = centroid.x - ((centroid.x - point.x) / 100);
           const dy = centroid.y - ((centroid.y - point.y) / 100);
-          return {x: dx, y: dy};
+          return {x: dx, y: dy, clusterCount: centroid.clusterCount};
         }
 
         return centroid;
@@ -412,14 +433,14 @@ const ClientIndexPage = () => {
   }
 
   const renderCanvas = () => {
-    const w = 1200;
-    const h = w * 9 / 16;
-    const p = 120;
+    const w = width;
+    const h = getHeight()!;
+    const p = padding;
 
     const bounds: [number, number, number, number] = points.value ? [points.value.minCol1, points.value.maxCol1, points.value.minCol2, points.value.maxCol2] : [0, 0, 0, 0];
     const whenDoesClusteringWorkWellSelected = selectedQuestion.value === 2 || selectedQuestion.value === 3;
 
-    return <div className="relative">
+    return <div className="relative mb-16">
       {renderInfoPanel()}
       <Stage width={w} height={h} className="bg-white border rounded">
 
@@ -459,6 +480,12 @@ const ClientIndexPage = () => {
           cluster because the distance (<span className="font-medium">{dist}</span>) from the datapoint to the
           <span className="font-medium" style={{color: color}}> {colorName}</span> clusters centroid is the shorter than the distances
           (<span className="font-medium">{dists.join(", ")}</span>) to to any other clusters centroids.</span>
+        <span>This point has been {point.clusterCount.map((count, index) => {
+          const color = colors[index];
+          const colorName = colorNames[index];
+
+          return <span style={{color: color}}>{count} times in the {colorName} cluster{index !== numClusters - 1 ? ", " : "."}</span>
+        })}</span>
       </div>
     }
 
@@ -486,6 +513,12 @@ const ClientIndexPage = () => {
           className="font-medium">{dists.join(", ")}</span>) to any of the other clusters is still not smaller than the distance (<span
           className="font-medium">{dist}</span>) to the <span className="font-medium"
                                                               style={{color: color}}>{colorName}</span> cluster.</span>
+        <span>This point has been {point.clusterCount.map((count, index) => {
+          const color = colors[index];
+          const colorName = colorNames[index];
+
+          return <span style={{color: color}}>{count} times in the {colorName} cluster{index !== numClusters - 1 ? ", " : "."}</span>
+        })}</span>
       </div>
     }
 
@@ -647,6 +680,7 @@ const ClientIndexPage = () => {
           </select>
 
           <button className={btn} onClick={loadPoints}>Load</button>
+          <button className={btn} onClick={toggleDistortion}>{!distorted.value ? "Show fit screen" : "Show absolute"}</button>
         </div>
 
         <div className="flex flex-row gap-1">

@@ -15,7 +15,7 @@ export type Point = {
   x: number;
   y: number;
   cluster?: number;
-  selected?: boolean;
+  clusterCount: [number, number, number, number];
 };
 
 
@@ -45,7 +45,7 @@ const getPoints = (data: any, column1: string, column2: string): PointsData => {
     minCol2 = Math.min(minCol2, y);
     maxCol2 = Math.max(maxCol2, y);
 
-    points.push({x, y});
+    points.push({x, y, clusterCount: [0, 0, 0, 0]});
   }
 
   return {
@@ -79,13 +79,13 @@ export const translate = (w: number, h: number, point: Point, xmin: number, xmax
   const yRatio = (point.y - ymin) / yRange;
   const x = xRatio * (w - padding * 2) + padding;
   const y = (1 - yRatio) * (h - padding * 2) + padding;
-  return {x, y};
+  return {x, y, clusterCount: [0, 0, 0, 0]};
 }
 
 export const random = (xmin: number, xmax: number, ymin: number, ymax: number): Point => {
   const x = xmin + Math.random() * (xmax - xmin);
   const y = ymin + Math.random() * (ymax - ymin);
-  return {x, y};
+  return {x, y, clusterCount: [0, 0, 0, 0]};
 }
 
 export const distance = (p1: Point, p2: Point): number => {
