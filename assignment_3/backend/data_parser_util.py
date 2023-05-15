@@ -77,7 +77,7 @@ class DataParserUtil:
         codes['hispanic_origin'] = self._codes['hispanic_origin']
         codes['cause_of_death'] = self._codes['39_cause_recode']
 
-        codes['cause_of_death'] = sorted(codes['cause_of_death'], key=lambda k: k['id'])
+        # codes['cause_of_death'] = sorted(codes['cause_of_death'], key=lambda k: k['id'])
 
         self._codes = codes
 
@@ -97,4 +97,4 @@ class DataParserUtil:
 
         result = [{'total': round(number_of_deaths[idx]/total, 3), 'id': str(causes_by_index[idx])} for idx in range(len(number_of_deaths))]
 
-        return result
+        return {'total': total, 'data': result}
