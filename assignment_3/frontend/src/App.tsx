@@ -5,14 +5,19 @@ import Pie from './Pie';
 import axios from 'axios';
 
 interface Options {
-  marital_status: { [key: string]: string};
-  sex: { [key: string]: string};
-  education: { [key: string]: string};
-  hispanic_origin: { [key: string]: string};
-  race: { [key: string]: string};
-  resident: { [key: string]: string};
-  max_age: {value: number};
-  cause_of_death: { [key: string]: string};
+  marital_status: { [key: string]: string };
+  sex: { [key: string]: string };
+  education: { [key: string]: string };
+  hispanic_origin: { [key: string]: string };
+  race: { [key: string]: string };
+  resident: { [key: string]: string };
+  max_age: { value: number };
+  cause_of_death: { [key: string]: string };
+}
+
+interface Data {
+  total: number;
+  data: [Values];
 }
 
 interface Values {
@@ -43,11 +48,11 @@ function App() {
         console.log(data);
         setData(res.data);
       }
-    )
+      )
   };
 
   const [options, setOptions] = useState<Options>();
-  const [data, setData] = useState<[Values]>();
+  const [data, setData] = useState<Data>();
 
   const [age, setAge] = useState(21);
   const [marital_status, setMaritalStatus] = useState("");
@@ -60,27 +65,27 @@ function App() {
   const [graphType, setGraphType] = useState("bar");
 
   useEffect(() => {
-      axios.get('http://127.0.0.1:5000/get_options', {
-        headers: {"Access-Control-Allow-Origin": "*"}
+    axios.get('http://127.0.0.1:5000/get_options', {
+      headers: { "Access-Control-Allow-Origin": "*" }
     })
       .then(res => { setOptions(res.data); console.log(res.data) })
       .catch(err => { console.log(err) })
   }, []);
 
   function getInformation() {
-      // create a forloop
-      // for each key in the options object
+    // create a forloop
+    // for each key in the options object
 
-      // turn the forloop into a map function
-      return data?.map((element) => {
-        let key = element.id
-        
-        if (key.length == 1) key = "00" + key
-        else if (key.length == 2) key = "0" + key
+    // turn the forloop into a map function
+    return data?.data.map((element) => {
+      let key = element.id
 
-        return <div key={element.id}> <span>{element.id}</span>: {options?.cause_of_death[key]}</div>
-      })
-    }
+      if (key.length == 1) key = "00" + key
+      else if (key.length == 2) key = "0" + key
+
+      return <div key={element.id}> <span>{element.id}</span>: {options?.cause_of_death[key]}</div>
+    })
+  }
 
   return (
     <div className="App">
@@ -89,7 +94,7 @@ function App() {
 
           <div className='form-element'>
             <label>Age ({age})</label>
-            <input type="range" min="0" max={options?.max_age.value} value={age} id="myRange" onChange={(e) => {setAge(Number.parseInt(e.target.value))}} />
+            <input type="range" min="0" max={options?.max_age.value} value={age} id="myRange" onChange={(e) => { setAge(Number.parseInt(e.target.value)) }} />
           </div>
 
           <div className="form-element">
@@ -182,12 +187,13 @@ function App() {
           <input type="submit" value="Submit" />
         </form>
       </div>
+      {data && <div className="total">Total: {data['total']} individuals</div>}
 
       <div className="group">
-        {data && data.length > 0 &&         
+        {data && data['data'].length > 0 &&
           <><div className="graphs">
-            {graphType === "bar" && <Bar data={data} />}
-            {graphType === "pie" && <Pie data={data} />}
+            {graphType === "bar" && <Bar data={data['data']} />}
+            {graphType === "pie" && <Pie data={data['data']} />}
           </div><div className="information">
               <h2>Information</h2>
               {/* display items from options.cause_of_death if they are in data */}

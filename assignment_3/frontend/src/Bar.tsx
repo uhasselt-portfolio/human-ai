@@ -13,7 +13,7 @@ function Bar(props: any) {
 
    return <ResponsiveBar
         data={format(props.data)} 
-
+        
         keys={["total"]}
         indexBy="id"
 
